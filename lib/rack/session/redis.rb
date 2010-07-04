@@ -7,7 +7,15 @@ module Rack
       def initialize(app, options = {})
         super
         @mutex = Mutex.new
-        @pool = RedisFactory.create options[:redis_server] || @default_options[:redis_server]
+        servers = [options[:servers]].flatten.compact.map do |server_options|
+          {
+            :namespace => 'rack:session',
+            :host => 'localhost',
+            :port => '6379',
+            :db => 0
+          }.update(RedisFactory.convert_to_redis_client_options(server_options))
+        end
+        @pool = RedisFactory.create(*servers) || @default_options[:redis_server]
       end
 
       def generate_sid
