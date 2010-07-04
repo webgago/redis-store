@@ -1,5 +1,15 @@
 module Rack
   module Session
+    # Redis session storage for Rack applications.
+    #
+    # Options:
+    #  :key     => Same as with the other cookie stores, key name
+    #  :secret  => Encryption secret for the key
+    #  :host    => Redis host name, default is localhost
+    #  :port    => Redis port, default is 6379
+    #  :db      => Database number, defaults to 0. Useful to separate your session storage from other data
+    #  :key_prefix  => Prefix for keys used in Redis, e.g. myapp-. Useful to separate session storage keys visibly from others
+    #  :expire_after => A number in seconds to set the timeout interval for the session. Will map directly to expiry in Redis
     class Redis < Abstract::ID
       attr_reader :mutex, :pool
       DEFAULT_OPTIONS = Abstract::ID::DEFAULT_OPTIONS.merge :redis_server => "localhost:6379"
@@ -7,6 +17,7 @@ module Rack
       def initialize(app, options = {})
         super
         @mutex = Mutex.new
+        @key_prefix = options[:key_prefix] || ""
         servers = [options[:servers]].flatten.compact.map do |server_options|
           {
             :namespace => 'rack:session',
@@ -26,14 +37,14 @@ module Rack
       end
 
       def get_session(env, sid)
-        session = @pool.marshalled_get(sid) if sid
+        session = @pool.marshalled_get(prefixed(sid)) if sid
         @mutex.lock if env['rack.multithread']
         unless sid and session
-          env['rack.errors'].puts("Session '#{sid.inspect}' not found, initializing...") if $VERBOSE and not sid.nil?
+          env['rack.errors'].puts("Session '#{prefixed(sid).inspect}' not found, initializing...") if $VERBOSE and not sid.nil?
           session = {}
           sid = generate_sid
-          ret = @pool.marshalled_set sid, session
-          raise "Session collision on '#{sid.inspect}'" unless ret
+          ret = @pool.marshalled_set prefixed(sid), session
+          raise "Session collision on '#{prefixed(sid).inspect}'" unless ret
         end
         session.instance_variable_set('@old', {}.merge(session))
         return [sid, session]
@@ -67,23 +78,27 @@ module Rack
       end
 
       private
-        def merge_sessions(sid, old, new, cur=nil)
-          cur ||= {}
-          unless Hash === old and Hash === new
-            warn 'Bad old or new sessions provided.'
-            return cur
-          end
+      def prefixed(sid)
+        "#{@key_prefix}#{sid}"
+      end
 
-          delete = old.keys - new.keys
-          warn "//@#{sid}: dropping #{delete*','}" if $DEBUG and not delete.empty?
-          delete.each{|k| cur.del k }
-
-          update = new.keys.select{|k| new[k] != old[k] }
-          warn "//@#{sid}: updating #{update*','}" if $DEBUG and not update.empty?
-          update.each{|k| cur[k] = new[k] }
-
-          cur
+      def merge_sessions(sid, old, new, cur=nil)
+        cur ||= {}
+        unless Hash === old and Hash === new
+          warn 'Bad old or new sessions provided.'
+          return cur
         end
+
+        delete = old.keys - new.keys
+        warn "//@#{sid}: dropping #{delete*','}" if $DEBUG and not delete.empty?
+        delete.each{|k| cur.del k }
+
+        update = new.keys.select{|k| new[k] != old[k] }
+        warn "//@#{sid}: updating #{update*','}" if $DEBUG and not update.empty?
+        update.each{|k| cur[k] = new[k] }
+
+        cur
+      end
     end
   end
 end
