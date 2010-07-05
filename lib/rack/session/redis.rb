@@ -46,7 +46,6 @@ module Rack
           ret = @pool.marshalled_set prefixed(sid), session
           raise "Session collision on '#{prefixed(sid).inspect}'" unless ret
         end
-        session.instance_variable_set('@old', {}.merge(session))
         return [sid, session]
       rescue Errno::ECONNREFUSED
         warn "#{self} is unable to find server."
@@ -65,9 +64,7 @@ module Rack
           session_id = generate_sid
           @pool.marshalled_set prefixed(session_id), 0
         end
-        old_session = new_session.instance_variable_get('@old') || {}
-        session = merge_sessions session_id, old_session, new_session, session
-        @pool.marshalled_set prefixed(session_id), session, options
+        @pool.marshalled_set prefixed(session_id), new_session, options
         return session_id
       rescue Errno::ECONNREFUSED
         warn "#{self} is unable to find server."
