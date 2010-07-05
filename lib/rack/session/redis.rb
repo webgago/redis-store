@@ -63,11 +63,11 @@ module Rack
           @pool.del session_id
           return false if options[:drop]
           session_id = generate_sid
-          @pool.marshalled_set session_id, 0
+          @pool.marshalled_set prefixed(session_id), 0
         end
         old_session = new_session.instance_variable_get('@old') || {}
         session = merge_sessions session_id, old_session, new_session, session
-        @pool.marshalled_set session_id, session, options
+        @pool.marshalled_set prefixed(session_id), session, options
         return session_id
       rescue Errno::ECONNREFUSED
         warn "#{self} is unable to find server."
