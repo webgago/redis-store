@@ -78,24 +78,6 @@ module Rack
       def prefixed(sid)
         "#{@key_prefix}#{sid}"
       end
-
-      def merge_sessions(sid, old, new, cur=nil)
-        cur ||= {}
-        unless Hash === old and Hash === new
-          warn 'Bad old or new sessions provided.'
-          return cur
-        end
-
-        delete = old.keys - new.keys
-        warn "//@#{sid}: dropping #{delete*','}" if $DEBUG and not delete.empty?
-        delete.each{|k| cur.del k }
-
-        update = new.keys.select{|k| new[k] != old[k] }
-        warn "//@#{sid}: updating #{update*','}" if $DEBUG and not update.empty?
-        update.each{|k| cur[k] = new[k] }
-
-        cur
-      end
     end
   end
 end
