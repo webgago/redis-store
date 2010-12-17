@@ -1,11 +1,17 @@
 class Redis
+  attr_reader :namespace
+
+  def namespace?
+    !!@namespace
+  end
+
   class Store < self
     include Ttl, Interface
 
-    def initialize(options = { })
+    def initialize(options = {})
       super
       _extend_marshalling options
-      _extend_namespace   options
+      _extend_namespace options
     end
 
     def self.rails3? #:nodoc:

@@ -31,6 +31,10 @@ describe "Redis::DistributedStore" do
     @dmr.get("rabbit").should == @rabbit
   end
 
+  it "should no namespace?" do
+    @dmr.namespace?.should be_false
+  end
+
   describe "namespace" do
     before :each do
       @dmr = Redis::DistributedStore.new [
@@ -42,6 +46,10 @@ describe "Redis::DistributedStore" do
     it "should use namespaced key" do
       @dmr.should_receive(:node_for).with("theplaylist:rabbit").and_return @dmr.nodes.first
       @dmr.get "rabbit"
+    end
+
+    it "should namespace?" do
+      @dmr.namespace?.should be_true
     end
   end
 end

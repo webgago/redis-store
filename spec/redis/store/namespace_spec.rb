@@ -54,6 +54,16 @@ describe "Redis::Store::Namespace" do
     @store.keys "rabb*"
   end
 
+  it "should namespace cleaned" do
+    @client.should_receive(:call).with(:del, "#{@namespace}:*")
+    @store.clear_namespace
+  end
+
+  it "should delete all keys within namespace" do
+    @store.clear_namespace
+    @store.keys.should be_empty
+  end
+
   it "should namespace exists" do
     @client.should_receive(:call).with(:exists, "#{@namespace}:rabbit")
     @store.exists "rabbit"

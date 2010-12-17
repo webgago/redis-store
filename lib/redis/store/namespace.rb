@@ -1,32 +1,34 @@
 class Redis
   class Store < self
     module Namespace
+      attr_reader :namespace
+
       def set(key, val, options = nil)
-        namespace(key) { |key| super(key, val, options) }
+        with_namespace(key) { |namespaced_key| super(namespaced_key, val, options) }
       end
 
       def setnx(key, val, options = nil)
-        namespace(key) { |key| super(key, val, options) }
+        with_namespace(key) { |namespaced_key| super(namespaced_key, val, options) }
       end
 
       def get(key, options = nil)
-        namespace(key) { |key| super(key, options) }
+        with_namespace(key) { |namespaced_key| super(namespaced_key, options) }
       end
 
       def exists(key)
-        namespace(key) { |key| super(key) }
+        with_namespace(key) { |namespaced_key| super(namespaced_key) }
       end
 
       def incrby(key, increment)
-        namespace(key) { |key| super(key, increment) }
+        with_namespace(key) { |namespaced_key| super(namespaced_key, increment) }
       end
 
       def decrby(key, increment)
-        namespace(key) { |key| super(key, increment) }
+        with_namespace(key) { |namespaced_key| super(namespaced_key, increment) }
       end
 
       def keys(pattern = "*")
-        namespace(pattern) { |pattern| super(pattern) }
+        with_namespace(pattern) { |namespaced_pattern| super(namespaced_pattern) }
       end
 
       def del(*keys)
@@ -41,8 +43,12 @@ class Redis
         "#{super} with namespace #{@namespace}"
       end
 
+      def clear_namespace
+        del "*"
+      end
+
       private
-        def namespace(key)
+        def with_namespace(key)
           yield interpolate(key)
         end
 

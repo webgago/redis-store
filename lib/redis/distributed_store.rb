@@ -1,6 +1,10 @@
 class Redis
   class DistributedStore < Distributed
-    attr_reader :ring
+    attr_reader :ring, :namespace
+
+    def namespace?
+      !!@namespace
+    end
 
     def initialize(addresses, options = { })
       nodes = addresses.map do |address|
